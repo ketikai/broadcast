@@ -1,0 +1,49 @@
+preferences:
+  autowire-on-sync-mode: UPDATE_OPTIONAL_DEPENDENCIES
+  repositories-mode: FAIL_ON_PROJECT_REPOS
+
+repositories:
+  aliyun:
+    url: https://maven.aliyun.com/repository/public/
+  sonatype:
+    url: https://oss.sonatype.org/content/groups/public/
+  placeholder-api:
+    scope: LIBRARIES
+    url: https://repo.extendedclip.com/content/repositories/placeholderapi/
+  spigotmc-repo:
+    scope: LIBRARIES
+    url: https://hub.spigotmc.org/nexus/content/repositories/snapshots/
+  minecraft-libraries:
+    scope: LIBRARIES
+    url: https://libraries.minecraft.net/
+  gradle-plugin-portal:
+    scope: PLUGINS
+  maven-central: {}
+
+plugins:
+  org.jetbrains.kotlin.jvm:
+    alias: kotlin-jvm
+    version: 2.1.10
+  com.gradleup.shadow:
+    alias: gradleup-shadow
+    version: 9.0.0-beta1
+
+libraries:
+  org.spigotmc:
+    spigot-api:
+      version: 1.12.2-R0.1-SNAPSHOT
+      repositories: spigotmc-repo
+  me.clip:
+    placeholderapi:
+      version: 2.11.6
+      repositories: placeholder-api
+  net.md-5:
+    bungeecord-api:
+      version: 1.21-R0.1-SNAPSHOT
+      repositories: minecraft-libraries
+  com.h2database:
+    h2:
+      version: 2.3.232
+  org.quartz-scheduler:
+    quartz:
+      version: 2.5.0

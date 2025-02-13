@@ -1,0 +1,9 @@
+# noinspection PluginYml,YAMLSchemaValidation
+name: ${name}
+version: '${version}'
+# noinspection PluginYml,YAMLSchemaValidation
+main: ${main}
+commands:
+  ${command}:
+    aliases:
+    - ${aliasCommand}
