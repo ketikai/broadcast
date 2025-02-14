@@ -9,38 +9,31 @@ interface Logger {
     companion object {
         private var debugIsEnabled = true
 
-        @JvmStatic
         fun enableDebug() {
             debugIsEnabled = true
         }
 
-        @JvmStatic
         fun disableDebug() {
             debugIsEnabled = false
         }
 
-        @JvmStatic
         val logger: Logger by lazy {
             Services.singleton(Logger::class.java, this::class.java.classLoader)
         }
 
-        @JvmStatic
         fun println(vararg message: String) {
             println(logger, *message)
         }
 
-        @JvmStatic
         fun println(logger: Logger, vararg message: String) {
             message.isEmpty() && return
             logger.println(*message)
         }
 
-        @JvmStatic
         fun debug(vararg message: String) {
             debug(logger, *message)
         }
 
-        @JvmStatic
         fun debug(logger: Logger, vararg message: String) {
             message.isEmpty() && return
             debugIsEnabled || return
@@ -49,12 +42,10 @@ interface Logger {
             }.toTypedArray())
         }
 
-        @JvmStatic
         fun info(vararg message: String) {
             info(logger, *message)
         }
 
-        @JvmStatic
         fun info(logger: Logger, vararg message: String) {
             message.isEmpty() && return
             logger.println(*message.map {
@@ -62,12 +53,10 @@ interface Logger {
             }.toTypedArray())
         }
 
-        @JvmStatic
         fun warn(vararg message: String) {
             warn(logger, *message)
         }
 
-        @JvmStatic
         fun warn(logger: Logger, vararg message: String) {
             message.isEmpty() && return
             logger.println(*message.map {
@@ -75,12 +64,10 @@ interface Logger {
             }.toTypedArray())
         }
 
-        @JvmStatic
         fun error(vararg message: String) {
             error(logger, *message)
         }
 
-        @JvmStatic
         fun error(logger: Logger, vararg message: String) {
             message.isEmpty() && return
             logger.println(*message.map {
@@ -88,12 +75,10 @@ interface Logger {
             }.toTypedArray())
         }
 
-        @JvmStatic
         fun error(vararg throwable: Throwable) {
             error(logger, *throwable)
         }
 
-        @JvmStatic
         fun error(logger: Logger, vararg throwable: Throwable) {
             throwable.isEmpty() && return
             logger.println(*throwable.map {
@@ -101,7 +86,8 @@ interface Logger {
                 PrintWriter(stackTrace).use { writer ->
                     it.printStackTrace(writer)
                 }
-                return@map "${ProtocolProperties.PROJECT_LANG_TITLE}${LogLevel.DEBUG.colorCode} $stackTrace"
+                val message = it.message ?: ""
+                return@map "${ProtocolProperties.PROJECT_LANG_TITLE}${LogLevel.DEBUG.colorCode} $message $stackTrace"
             }.toTypedArray())
         }
     }
@@ -109,18 +95,22 @@ interface Logger {
     fun println(vararg message: String)
 
     fun debug(vararg message: String) {
-        debug(this, *message)
+        Companion.debug(this, *message)
     }
 
     fun info(vararg message: String) {
-        info(this, *message)
+        Companion.info(this, *message)
     }
 
     fun warn(vararg message: String) {
-        warn(this, *message)
+        Companion.warn(this, *message)
     }
 
     fun error(vararg message: String) {
-        error(this, *message)
+        Companion.error(this, *message)
+    }
+
+    fun error(vararg throwable: Throwable) {
+        Companion.error(this, *throwable)
     }
 }

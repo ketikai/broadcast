@@ -13,7 +13,7 @@ interface CommandOptionAcceptor {
         }
 
         @JvmStatic
-        val ACCPET: CommandOptionAcceptor = object: CommandOptionAcceptor {
+        val ACCEPT: CommandOptionAcceptor = object: CommandOptionAcceptor {
             override fun accept(context: Map<String, Any?>, sender: BroadcastSender, request: String): CommandAcceptResult {
                 return CommandAcceptResult.SUCCESS
             }

@@ -9,6 +9,7 @@ version = property.project.version
 dependencies {
     implementation(project(":protocol"))
     implementation(com.h2database.h2)
+    implementation(com.zaxxer.hikariCP)
     implementation(org.quartz.scheduler.quartz)
     compileOnly(net.md.s.bungeecord.api)
 }

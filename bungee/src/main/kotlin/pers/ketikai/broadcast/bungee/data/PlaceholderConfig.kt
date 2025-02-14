@@ -15,19 +15,17 @@ class PlaceholderConfig(
         }
         return@lazy buildMap {
             for (key in keys) {
-                val value = section.getSection(key)
-                if (value == null) {
-                    val text = section.getString(key)
-                    if (text != null) {
-                        put(key, PlaceholderValue(text, text, text))
+                val value = section.get(key) ?: continue
+                when (value) {
+                    is String -> put(key, PlaceholderValue(value, value, value))
+                    is Configuration -> {
+                        val server = value.getString("server")
+                        val player = value.getString("player")
+                        val admin = value.getString("admin")
+                        if (server == null && player == null) continue
+                        put(key, PlaceholderValue(server, player, admin))
                     }
-                    continue
                 }
-                val server = value.getString("server")
-                val player = value.getString("player")
-                val admin = value.getString("admin")
-                if (server == null && player == null) continue
-                put(key, PlaceholderValue(server, player, admin))
             }
         }
      }

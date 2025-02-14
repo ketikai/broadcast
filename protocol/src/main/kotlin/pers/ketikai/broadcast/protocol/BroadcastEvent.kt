@@ -4,7 +4,8 @@ import pers.ketikai.broadcast.common.Services
 
 @Suppress("MemberVisibilityCanBePrivate")
 class BroadcastEvent(
-    val original: BroadcastProtocol
+    val original: BroadcastProtocol,
+    val state: BroadcastState
 ) {
     private val publisher by lazy {
         Services.singleton(BroadcastEventPublisher::class.java, this::class.java.classLoader)

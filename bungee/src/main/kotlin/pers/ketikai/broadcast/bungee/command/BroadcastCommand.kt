@@ -12,7 +12,7 @@ class BroadcastCommand(private val plugin: Broadcast): net.md_5.bungee.api.plugi
     ProtocolProperties.PROJECT_COMMAND_MAIN, null, ProtocolProperties.PROJECT_COMMAND_ALIAS
 ) {
 
-    private val delegate = BroadcastCommand(name, aliases.toSet(), BroadcastConfiguration(plugin), plugin.handler)
+    private val delegate = BroadcastCommand(name, aliases.toSet(), BroadcastConfiguration(plugin), plugin.handler, plugin.jobs)
 
     override fun execute(sender: CommandSender, vararg args: String) {
         val broadcastSender = BroadcastSender(sender)

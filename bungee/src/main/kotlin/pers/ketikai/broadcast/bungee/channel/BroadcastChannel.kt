@@ -1,42 +1,43 @@
 package pers.ketikai.broadcast.bungee.channel
 
 import com.google.gson.Gson
+import net.md_5.bungee.api.chat.ClickEvent
+import net.md_5.bungee.api.chat.HoverEvent
+import net.md_5.bungee.api.chat.TextComponent
+import net.md_5.bungee.api.chat.hover.content.Text
 import net.md_5.bungee.api.connection.Server
 import net.md_5.bungee.api.event.PluginMessageEvent
 import net.md_5.bungee.api.plugin.Listener
 import net.md_5.bungee.event.EventHandler
 import net.md_5.bungee.event.EventPriority
-import org.quartz.impl.StdSchedulerFactory
 import pers.ketikai.broadcast.bungee.Broadcast
 import pers.ketikai.broadcast.bungee.service.BukkitBroadcastSender
+import pers.ketikai.broadcast.common.LogLevel
 import pers.ketikai.broadcast.common.Logger
+import pers.ketikai.broadcast.generated.ProtocolProperties
 import pers.ketikai.broadcast.protocol.BroadcastAction
 import pers.ketikai.broadcast.protocol.BroadcastEvent
 import pers.ketikai.broadcast.protocol.BroadcastProtocol
 import pers.ketikai.broadcast.protocol.BroadcastProtocolHandler
+import pers.ketikai.broadcast.protocol.BroadcastScheduler
 import pers.ketikai.broadcast.protocol.BroadcastSender
+import pers.ketikai.broadcast.protocol.BroadcastState
 import java.io.ByteArrayInputStream
-import java.io.File
+import java.io.Closeable
 import java.io.InputStreamReader
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.Properties
 
-class BroadcastChannel(private val plugin: Broadcast, private val channel: String): Listener, BroadcastProtocolHandler {
+class BroadcastChannel(private val plugin: Broadcast, private val channel: String): Listener, BroadcastProtocolHandler, BroadcastScheduler, Closeable {
 
     private val gson by lazy {
         Gson()
     }
 
+    private val scheduler: BroadcastScheduler = pers.ketikai.broadcast.bungee.service.BroadcastScheduler(plugin)
+
     init {
         plugin.proxy.registerChannel(channel)
-        val properties = Properties()
-        val inputStream = this::class.java.getResourceAsStream("/quartz.properties")
-        inputStream == null && throw IllegalStateException("Cannot load classpath:/quartz.properties.")
-        inputStream.use(properties::load)
-        val databaseFile = File(plugin.dataFolder, "h2.mv.db")
-        properties["org.quartz.dataSource.PUBLIC.URL"] = "jdbc=h2=${databaseFile.absolutePath}"
-        val schedulerFactory = StdSchedulerFactory(properties)
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -54,21 +55,49 @@ class BroadcastChannel(private val plugin: Broadcast, private val channel: Strin
     }
 
     override fun send(sender: BroadcastSender, protocol: BroadcastProtocol) {
-        BroadcastEvent(protocol).apply {
+        BroadcastEvent(protocol, BroadcastState.SEND).apply {
             fire() || return
-            if (!editor.crontab.equals("now", true)) {
-                // TODO: crontab
-
-                return
-            }
             val logger = sender.logger
             val proxy = plugin.proxy
             val config = plugin.config
+            proxy.servers.values.none {
+                it.players.isNotEmpty()
+            } && return
+            if (!editor.crontab.equals("now", true)) {
+                editor.build().apply {
+                    try {
+                        val (id, success) = schedule(this)
+                        if (sender.isPlayer) {
+                            val player = proxy.getPlayer(sender.name)
+                            val component = if (success) {
+                                TextComponent("${ProtocolProperties.PROJECT_LANG_TITLE}${LogLevel.INFO.colorCode} Scheduled broadcast job: $id")
+                            } else {
+                                TextComponent("${ProtocolProperties.PROJECT_LANG_TITLE}${LogLevel.WARN.colorCode} Broadcast job '$id' already exists.")
+                            }
+                            component.clickEvent = ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, id)
+                            component.hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT, Text(TextComponent("Click to copy to clipboard.")))
+                            player.sendMessage(component)
+                        } else if (success) {
+                            logger.info("Scheduled broadcast job: $id")
+                        } else {
+                            logger.error("Broadcast job '$id' already exists.")
+                        }
+                    } catch (e: IllegalArgumentException) {
+                        logger.error(e)
+                    }
+                }
+                return
+            }
             val validServers = proxy.servers.keys
-            val validTarget = config.target[editor.target]?.filter(validServers::contains)
-                ?: editor.target.split(",").filter(validServers::contains)
+            val target = editor.target
+            val validTarget: List<String> = if (target.equals("all", true)) {
+                validServers.toList()
+            } else {
+                config.target[target]?.filter(validServers::contains)
+                    ?: target.split(",").filter(validServers::contains)
+            }
             if (validTarget.isEmpty()) {
-                logger.error( "Target '${editor.target}' not found.")
+                logger.error( "Target '$target' not found.")
                 return
             }
             var arguments = editor.arguments
@@ -97,25 +126,15 @@ class BroadcastChannel(private val plugin: Broadcast, private val channel: Strin
                     return
                 }
             }
-            editor.target(validTarget.joinToString(","))
+//            editor.target(validTarget.joinToString(","))
             editor.build().apply {
-                val mappings = LinkedHashSet(validTarget)
-                val data = lazy {
-                    gson.toJson(this).toByteArray()
-                }
+                Logger.debug("Sending broadcast to servers: [${validTarget.joinToString(", ")}].")
                 val finished = mutableListOf<String>()
-                if (mappings.contains("*")) {
-                    for (server in proxy.servers.values) {
-                        if (server.sendData(channel, data.value, false)) {
-                            finished.add(server.name)
-                        }
-                    }
-                } else {
-                    for (it in mappings) {
-                        val server = proxy.getServerInfo(it) ?: continue
-                        if (server.sendData(channel, data.value, false)) {
-                            finished.add(server.name)
-                        }
+                val data = gson.toJson(this).toByteArray()
+                for (server in validTarget) {
+                    val serverInfo = proxy.getServerInfo(server)
+                    if (serverInfo.sendData(channel, data, false)) {
+                        finished.add(server)
                     }
                 }
                 Logger.info("Sent broadcast to servers: [${finished.joinToString(", ")}].")
@@ -165,12 +184,35 @@ class BroadcastChannel(private val plugin: Broadcast, private val channel: Strin
     }
 
     private fun doReceive(sender: BroadcastSender, protocol: BroadcastProtocol) {
-        BroadcastEvent(protocol).apply {
+        BroadcastEvent(protocol, BroadcastState.RECEIVE).apply {
             fire() || return
 
             editor.build().apply {
                 send(sender, this)
             }
         }
+    }
+
+    override val jobs: Map<String, String>
+        get() = scheduler.jobs
+
+    override fun schedule(protocol: BroadcastProtocol): Pair<String, Boolean> {
+        return scheduler.schedule(protocol)
+    }
+
+    override fun unschedule(id: String): Boolean {
+            return scheduler.unschedule(id)
+    }
+
+    override fun clear() {
+          scheduler.clear()
+    }
+
+    override fun shutdown(waitForJobsToComplete: Boolean) {
+        scheduler.shutdown(waitForJobsToComplete)
+    }
+
+    override fun close() {
+        shutdown(true)
     }
 }

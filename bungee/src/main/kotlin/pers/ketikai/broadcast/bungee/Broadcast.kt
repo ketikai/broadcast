@@ -11,11 +11,11 @@ import pers.ketikai.broadcast.common.Banner
 import pers.ketikai.broadcast.common.Bundled
 import pers.ketikai.broadcast.common.Logger
 import pers.ketikai.broadcast.generated.ProtocolProperties
+import pers.ketikai.broadcast.protocol.BroadcastJobContainer
 import pers.ketikai.broadcast.protocol.BroadcastLogHandler
 import pers.ketikai.broadcast.protocol.BroadcastProtocolHandler
+import java.io.Closeable
 import java.io.File
-import java.nio.file.Paths
-import kotlin.io.path.relativeTo
 
 @Suppress("MemberVisibilityCanBePrivate")
 class Broadcast: Plugin() {
@@ -31,6 +31,9 @@ class Broadcast: Plugin() {
     private var _logHandler: BroadcastLogHandler? = null
     val logHandler
         get() = _logHandler ?: throw IllegalStateException("Log handler is not initialized yet.")
+    private var _jobs: BroadcastJobContainer? = null
+    val jobs
+        get() = _jobs ?: throw IllegalStateException("Jobs is not initialized yet.")
 
     private var _config: Config? = null
 
@@ -56,7 +59,7 @@ class Broadcast: Plugin() {
     }
 
     fun getNotice(name: String): List<String>? {
-        val notice = Paths.get(NOTICES_DIR_PATH, name).relativeTo(dataFolder.toPath()).toFile()
+        val notice = File(File(dataFolder, NOTICES_DIR_PATH), name)
         return if (notice.exists()) {
             notice.readLines()
         } else {
@@ -80,6 +83,9 @@ class Broadcast: Plugin() {
 
     override fun onDisable() {
         Logger.debug("onDisable")
+        if (handler is Closeable) {
+            (handler as Closeable).close()
+        }
     }
 
     fun reloadConfig() {
@@ -100,6 +106,7 @@ class Broadcast: Plugin() {
             val broadcastChannel = BroadcastChannel(plugin, ProtocolProperties.PROJECT_CHANNEL)
             registerListener(plugin, broadcastChannel)
             _handler = broadcastChannel
+            _jobs = broadcastChannel
             val broadcastLogChannel = BroadcastLogChannel(plugin, ProtocolProperties.PROJECT_LOG_CHANNEL)
             registerListener(plugin, broadcastLogChannel)
             _logHandler = broadcastLogChannel

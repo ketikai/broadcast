@@ -26,7 +26,7 @@ plugins:
     version: 2.1.10
   com.gradleup.shadow:
     alias: gradleup-shadow
-    version: 9.0.0-beta1
+    version: 9.0.0-beta8
 
 libraries:
   org.spigotmc:
@@ -43,7 +43,10 @@ libraries:
       repositories: minecraft-libraries
   com.h2database:
     h2:
-      version: 2.3.232
+      version: 2.2.220
+  com.zaxxer:
+    HikariCP:
+      version: 4.0.3
   org.quartz-scheduler:
     quartz:
-      version: 2.5.0
+      version: 2.4.0

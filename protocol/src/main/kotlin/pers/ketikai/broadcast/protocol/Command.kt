@@ -40,6 +40,20 @@ class Command(
         return this
     }
 
+    private fun permission(options: List<CommandOption>, end: Int): String {
+        if (options.isEmpty()) {
+            return permission
+        }
+        var permission = permission
+        for ((index, option) in options.withIndex()) {
+            if (index > end) {
+                break
+            }
+            permission = option.permissionNode
+        }
+        return permission
+    }
+
     fun execute(context: Map<String, Any?>, sender: BroadcastSender, request: String, vararg arguments: String): Boolean {
         var permission: String
         if (!sender.isAdmin) {
@@ -47,7 +61,7 @@ class Command(
             sender.hasPermission(permission) || return CommandAcceptResult.permissionDenied(permission).execute(context, sender)
         }
         val lowercase = request.lowercase()
-        if (lowercase == name || lowercase in _aliases) {
+        if (lowercase != name && lowercase !in _aliases) {
             return CommandAcceptResult.FAILURE.execute(context, sender)
         }
 
@@ -61,7 +75,7 @@ class Command(
             for (option in optionGroup) {
                 val argument = iterator.next()
                 if (!sender.isAdmin) {
-                    permission = option.permission
+                    permission = permission(optionGroup, index + 1)
                     if (!sender.hasPermission(permission)) {
                         lastResult = CommandAcceptResult.permissionDenied(permission)
                         break
@@ -78,13 +92,16 @@ class Command(
                 accept = index to (lastResult to optionGroup.toList())
                 continue
             }
+            val factor = 100
             if (accept.second.first.success) {
-                if (lastResult.success && accept.first < index) {
-                    accept = index to (lastResult to optionGroup.toList())
+                if (lastResult.success) {
+                    if ((accept.first * factor / accept.second.second.size) < (index * factor / optionGroup.size)) {
+                        accept = index to (lastResult to optionGroup.toList())
+                    }
                 }
                 continue
             }
-            if (lastResult.success || accept.first < index) {
+            if (lastResult.success || (accept.first * factor / accept.second.second.size) < (index * factor / optionGroup.size)) {
                 accept = index to (lastResult to optionGroup.toList())
             }
         }

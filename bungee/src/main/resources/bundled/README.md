@@ -1,5 +1,8 @@
 # 使用文档
 
+### 注意
+所有命令权限仅在 BC 端可用，即 Bukkit 端的 OP 并不列入 BC 端的 ADMIN 权限组内。
+
 ### 命令列表
 ```shell
 # 重载配置
@@ -7,8 +10,23 @@
 ```
 
 ```shell
+# 显示定时任务列表以查看 id（子服控制台不可用）
+/${command}:${aliasCommand} job list
+```
+
+```shell
+# 移除所有定时任务（子服控制台不可用）
+/${command}:${aliasCommand} job clear
+```
+
+```shell
+# 移除指定 id 的定时任务（子服控制台不可用）
+/${command}:${aliasCommand} job remove <id>
+```
+
+```shell
 # 主要命令
-/${command}:${aliasCommand} <crontab> <target> <action> {arguments}
+/${command}:${aliasCommand} commit <crontab> <target> <action> {arguments}
 ```
 
 > ### 参数说明
@@ -37,7 +55,7 @@ debug: true
 crontab:
   # 测试用定时计划
   # 每 5 秒执行一次
-  test: '/5 * * * * ?'
+  test: '0/5 * * * * ?'
 
 # 目标服务器组（优先从服务器组内进行匹配并返回，其次才是匹配单个服务器的名称）
 # 本插件已提供的目标服务器组：

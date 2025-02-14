@@ -48,4 +48,8 @@ data class BroadcastProtocol(
             return BroadcastProtocol(crontab, target, action, arguments)
         }
     }
+
+    override fun toString(): String {
+        return "BroadcastProtocol(crontab='$crontab', target='$target', action=$action, arguments='$arguments')"
+    }
 }
